@@ -8,10 +8,11 @@ from scipy.spatial import distance as dist
 import time
 
 ap = argparse.ArgumentParser()
+
+ap.add_argument("-o", "--output", required=True, help="path to the output directory")
 ap.add_argument("-m", "--min-frames", type=int, default=120,
 	help="minimum # of frames containing motion before writing to file")
-
-ap.add_argument("-v", "--video", required=False, help="path to the (optional) video file")
+ap.add_argument("-v", "--video", help="path to the (optional) video file")
 args = vars(ap.parse_args())
 
 # if a video path was not supplied, grab the reference to the webcam
@@ -60,7 +61,7 @@ while True:
 		# detect motion in the image
 		motion = md.detect(gray)
 
-		# if the `motion` object None, then motion has occurred in the image
+		# if the `motion` object not None, then motion has occurred in the image
 		if motion is not None:
 			# unpack the motion tuple, compute the center (x, y)-coordinates of the
 			# bounding box, and draw the bounding box of the motion on the output frame
@@ -88,6 +89,13 @@ while True:
 				if d < consec[2]:
 					consec[1:] = (frame, d)
 
+			# if a sufficient number of frames have contained motion, log the motion
+			if consec[0] == args["min_frames"]:
+				# MOTION DETECTED!  DO SOMETHING COOL!
+				print("[INFO] logging motion to file: {}".format(timestamp))
+				consec = None
+
+
 		# otherwise, there is no motion in the frame so reset the consecutive bookkeeing
 		# variable
 		else:
@@ -96,11 +104,6 @@ while True:
 	# update the background model and increment the total number of frames read thus far
 	md.update(gray)
 	total += 1
-
-
-
-
-
 
 	cv2.imshow("Frame", frame)
 
