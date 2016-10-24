@@ -1,0 +1,6 @@
+{
+	"mailgunSecretApiKey": "key-123abc",
+	"mailgunToAddress": "bob@aol.com",
+	"mailgunDomainName": "sandboxasdf9876.mailgun.org",
+	"minFrames": 32
+}
