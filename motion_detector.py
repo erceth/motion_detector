@@ -8,6 +8,7 @@ import json
 from scipy.spatial import distance as dist
 import time
 import requests
+from threading import Timer
 
 ap = argparse.ArgumentParser()
 
@@ -21,6 +22,7 @@ mailgunSecretApiKey = data["mailgunSecretApiKey"]
 mailgunToAddress = data["mailgunToAddress"]
 mailgunDomainName = data["mailgunDomainName"]
 minFrames = data["minFrames"]
+timeToWaitBetweenNotification = data["timeToWaitBetweenNotification"]
 print(data)
 print(mailgunSecretApiKey, mailgunToAddress, mailgunDomainName, minFrames)
 
@@ -44,6 +46,8 @@ md = SingleMotionDetector(accumWeight=0.1)
 total = 0
 consec = None
 frameShape = None
+waitBetweenNotification = False
+
 
 # keep looping
 while True:
@@ -103,7 +107,15 @@ while True:
                     consec[1:] = (frame, d)
             print(consec[0])
             # if a sufficient number of frames have contained motion, log the motion
-            if consec[0] == minFrames:
+            if consec[0] == minFrames and waitBetweenNotification is False:
+                
+                def setWaitBetweenNotification():
+                    waitBetweenNotification = False
+
+                waitBetweenNotification = True
+                t = Timer(timeToWaitBetweenNotification, setWaitBetweenNotification)
+                t.start()
+
                 # MOTION DETECTED!  DO SOMETHING COOL!
                 print("[INFO] logging motion to file: {0}".format(timestamp))
                 r = requests.post(
