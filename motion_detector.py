@@ -3,6 +3,7 @@ import argparse
 import datetime
 import cv2
 import imutils
+from imutils.video import VideoStream
 from pyimagesearch.motion_detection import SingleMotionDetector
 import json
 from scipy.spatial import distance as dist
@@ -13,32 +14,40 @@ from threading import Timer
 ap = argparse.ArgumentParser()
 
 ap.add_argument("-v", "--video", help="path to the (optional) video file")
+ap.add_argument("-p", "--picamera", type=int, default=-1,
+	help="whether or not the Raspberry Pi camera should be used")
 args = vars(ap.parse_args())
 
 with open('config.json') as data_file:
     data = json.load(data_file)
 
 mailgunSecretApiKey = data["mailgunSecretApiKey"]
+print("mailgunSecretApiKey:", mailgunSecretApiKey)
 mailgunToAddress = data["mailgunToAddress"]
+print("mailgunToAddress:", mailgunToAddress)
 mailgunDomainName = data["mailgunDomainName"]
+print("mailgunDomainName:", mailgunDomainName)
 minFrames = data["minFrames"]
+print("minFrames:", minFrames)
 timeToWaitBetweenNotification = data["timeToWaitBetweenNotification"]
-print(data)
-print(mailgunSecretApiKey, mailgunToAddress, mailgunDomainName, minFrames)
+print("timeToWaitBetweenNotification:", timeToWaitBetweenNotification)
 
 #TODO: check what conf returns if not defined
 if mailgunSecretApiKey is None:
     print("mail gun secret key is not defined")
 
-# if a video path was not supplied, grab the reference to the webcam
-if not args.get("video", False):
-    camera = cv2.VideoCapture(0)
-    print("Streaming from camera")
-
-# otherwise, grab a reference to the video file
-else:
+# read from file
+if args.get("video"):
     camera = cv2.VideoCapture(args["video"])
     print("reading", args["video"])
+# PI camera
+elif args["picamera"] > 0:
+    camera = VideoStream(usePiCamera=args["picamera"] > 0).start()
+    print("Streaming from PI camera")
+# webcam
+else:
+    camera = cv2.VideoCapture(0)
+    print("Streaming from webcam")
 
 time.sleep(2.0)
 
@@ -52,7 +61,9 @@ waitBetweenNotification = False
 # keep looping
 while True:
     # grab the current frame
-    (success, frame) = camera.read()
+    success = True
+    #(success, frame) = camera.read() #TODO: make read accept video file or camera
+    frame = camera.read()
 
     if success is False:
         print("End of stream")
@@ -121,7 +132,7 @@ while True:
                 r = requests.post(
                     "https://api.mailgun.net/v3/{0}/messages".format(mailgunDomainName),
                     auth=("api", mailgunSecretApiKey),
-                    data={"from": "Excited User <mailgun@{0}>". format(mailgunDomainName),
+                    data={"from": "Motion Camera <mailgun@{0}>". format(mailgunDomainName),
                           "to": [mailgunToAddress],
                           "subject": "Motion detected",
                           "text": "Motion was detected at: {0}".format(timestamp)})
