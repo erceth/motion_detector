@@ -124,7 +124,7 @@ while True:
             if consec[0] == minFrames and waitBetweenNotification is False:
                 
                 def setWaitBetweenNotification():
-                    waitBetweenNotification = False
+                    global waitBetweenNotification = False
 
                 waitBetweenNotification = True
                 t = Timer(timeToWaitBetweenNotification, setWaitBetweenNotification)
