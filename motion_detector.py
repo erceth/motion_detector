@@ -1,3 +1,5 @@
+#http://www.pyimagesearch.com/2016/01/04/unifying-picamera-and-cv2-videocapture-into-a-single-class-with-opencv/
+
 import numpy as np
 import argparse
 import datetime
@@ -128,14 +130,17 @@ while True:
                 t.start()
 
                 # MOTION DETECTED!  DO SOMETHING COOL!
+                cv2.imwrite("frame.jpg", consec[1])
                 print("[INFO] logging motion to file: {0}".format(timestamp))
                 r = requests.post(
                     "https://api.mailgun.net/v3/{0}/messages".format(mailgunDomainName),
                     auth=("api", mailgunSecretApiKey),
+                    files=[("inline", open("frame.jpg", 'rb'))],
                     data={"from": "Motion Camera <mailgun@{0}>". format(mailgunDomainName),
                           "to": [mailgunToAddress],
                           "subject": "Motion detected",
-                          "text": "Motion was detected at: {0}".format(timestamp)})
+                          "text": "Motion was detected at: {0}".format(timestamp),
+                          "html": '<html>yo: <img src="cid:frame.jpg"></html>'})
                 print(r.status_code)
                 print(r.text)
 
