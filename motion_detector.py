@@ -18,7 +18,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", help="path to the (optional) video file")
 ap.add_argument("-p", "--picamera", type=int, default=-1,
 	help="whether or not the Raspberry Pi camera should be used")
-ap.add_argument("-m", "--prod", type=int, default=-1, help="run in production")
+ap.add_argument("-m", "--production", type=int, default=-1, help="run in production")
 args = vars(ap.parse_args())
 
 with open('config.json') as data_file:
