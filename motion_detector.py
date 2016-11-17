@@ -15,10 +15,9 @@ from threading import Timer
 
 ap = argparse.ArgumentParser()
 
-ap.add_argument("-v", "--video", help="path to the (optional) video file")
 ap.add_argument("-p", "--picamera", type=int, default=-1,
-	help="whether or not the Raspberry Pi camera should be used")
-ap.add_argument("-m", "--production", type=int, default=-1, help="run in production")
+    help="whether or not the Raspberry Pi camera should be used")
+
 args = vars(ap.parse_args())
 
 with open('config.json') as data_file:
@@ -35,22 +34,13 @@ print("minFrames:", minFrames)
 timeToWaitBetweenNotification = data["timeToWaitBetweenNotification"]
 print("timeToWaitBetweenNotification:", timeToWaitBetweenNotification)
 
+# initialize the video stream and allow the cammera sensor to warmup
+vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
+time.sleep(2.0)
+
 #TODO: check what conf returns if not defined
 if mailgunSecretApiKey is None:
     print("mail gun secret key is not defined")
-
-# read from file
-if args.get("video"):
-    camera = cv2.VideoCapture(args["video"])
-    print("reading", args["video"])
-# PI camera
-elif args["picamera"] > 0:
-    camera = VideoStream(usePiCamera=args["picamera"] > 0).start()
-    print("Streaming from PI camera")
-# webcam
-else:
-    camera = cv2.VideoCapture(0)
-    print("Streaming from webcam")
 
 time.sleep(2.0)
 
@@ -63,20 +53,13 @@ waitBetweenNotification = False
 
 # keep looping
 while True:
-    # grab the current frame
-    success = True
-    #(success, frame) = camera.read() #TODO: make read accept video file or camera
-    frame = camera.read()
-
-    if success is False:
-        print("End of stream")
-        break
-
-    #stuff
+    # grab the frame from the threaded video stream and resize it
+    # to have a maximum width of 400 pixels
+    frame = vs.read()
     frame = imutils.resize(frame, width=400)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (7, 7), 0)
-
+    
     # grab the current timestamp and draw it on the frame
     timestamp = datetime.datetime.now()
     cv2.putText(frame, timestamp.strftime("%A %d %B %Y %I:%M:%S%p"),
@@ -120,6 +103,7 @@ while True:
                 if d < consec[2]:
                     consec[1:] = (frame, d)
             print(consec[0])
+            cv2.imshow("Frame", frame)
             # if a sufficient number of frames have contained motion, log the motion
             if consec[0] == minFrames and waitBetweenNotification is False:
                 
@@ -157,9 +141,6 @@ while True:
     # update the background model and increment the total number of frames read thus far
     md.update(gray)
     total += 1
-
-    if args["production"] < 0:
-        cv2.imshow("Frame", frame)
 
     if cv2.waitKey(5) & 0xFF == ord('q'):
         break
